@@ -8,32 +8,33 @@ import {
   GamepadControl, 
   MapView 
 } from './components';
+import { useRos } from './hooks/useRos';
 
 function App() {
   const [activeItem, setActiveItem] = useState('overview');
-  const [isConnected, setIsConnected] = useState(false);
+  const { ros, connected } = useRos('ws://192.168.1.100:9090'); //replace with actual rover IP, this connects to Ros Bridge on Rover
 
   return (
     <>
-      <Navbar isConnected={isConnected} setIsConnected={setIsConnected} />
+      <Navbar isConnected={connected} setIsConnected={() => {}} />
       <Sidebar activeItem={activeItem} setActiveItem={setActiveItem} />
       <div className="main-container">
         <div className="row g-3 mb-3">
           <div className="col-lg-4">
-            <VideoCamera name="Front Camera" />
+            <VideoCamera name="Front Camera" ros={ros} topic="/front_camera/image_raw" />
           </div>
           <div className="col-lg-4">
-            <VideoCamera name="Arm Camera" />
+            <VideoCamera name="Arm Camera" ros={ros} topic="/arm_camera/image_raw" />
           </div>
           <div className="col-lg-4">
-            <VideoCamera name="Side Camera" />
+            <VideoCamera name="Side Camera" ros={ros} topic="/side_camera/image_raw" />
           </div>
         </div>
 
         <div className="row g-3">
           <div className="col-lg-6">
-            <MapView />
-            <GamepadControl />
+            <MapView ros={ros} />
+            <GamepadControl ros={ros} />
           </div>
 
           <div className="col-lg-6">

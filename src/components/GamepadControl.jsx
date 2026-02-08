@@ -1,24 +1,57 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import ROSLIB from 'roslib';
 
-export function GamepadControl() {
+export function GamepadControl({ ros }) {
   const [speed, setSpeed] = useState(65);
   const [leftStick, setLeftStick] = useState({ x: 0, y: 0 });
-  const [rightStick, setRightStick] = useState({ x: 0, y: 0 });
+  const [cmdVelTopic, setCmdVelTopic] = useState(null);
+
+  // Initialize ROS topic for velocity commands
+  useEffect(() => {
+    if (!ros) return;
+
+    const topic = new ROSLIB.Topic({
+      ros: ros,
+      name: '/cmd_vel',
+      messageType: 'geometry_msgs/Twist'
+    });
+
+    setCmdVelTopic(topic);
+
+    return () => {
+      topic.unadvertise();
+    };
+  }, [ros]);
+
+  // Publish velocity commands when joystick moves
+  useEffect(() => {
+    if (!cmdVelTopic) return;
+
+    const twist = new ROSLIB.Message({
+      linear: { 
+        x: -leftStick.y * (speed / 100), 
+        y: 0, 
+        z: 0 
+      },
+      angular: { 
+        x: 0, 
+        y: 0, 
+        z: leftStick.x * (speed / 100) 
+      }
+    });
+
+    cmdVelTopic.publish(twist);
+  }, [leftStick, speed, cmdVelTopic]);
 
   const handleStickMove = (stick, e) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     const y = ((e.clientY - rect.top) / rect.height) * 2 - 1;
-    if (stick === 'left')
-      setLeftStick({
-        x: Math.max(-1, Math.min(1, x)),
-        y: Math.max(-1, Math.min(1, y)),
-      });
-    else
-      setRightStick({
-        x: Math.max(-1, Math.min(1, x)),
-        y: Math.max(-1, Math.min(1, y)),
-      });
+    
+    setLeftStick({
+      x: Math.max(-1, Math.min(1, x)),
+      y: Math.max(-1, Math.min(1, y)),
+    });
   };
 
   return (
@@ -39,21 +72,6 @@ export function GamepadControl() {
                 style={{
                   left: `${(leftStick.x + 1) * 50}%`,
                   top: `${(leftStick.y + 1) * 50}%`,
-                }}
-              />
-            </div>
-          </div>
-          <div>
-            <small className="text-muted d-block mb-2">Rotate</small>
-            <div
-              className="analog-stick"
-              onMouseMove={(e) => handleStickMove('right', e)}
-            >
-              <div
-                className="stick-indicator"
-                style={{
-                  left: `${(rightStick.x + 1) * 50}%`,
-                  top: `${(rightStick.y + 1) * 50}%`,
                 }}
               />
             </div>
